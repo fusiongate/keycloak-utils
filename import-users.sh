@@ -58,6 +58,7 @@ kc_create_user() {
   lastname="$2"
   username="$3"
   email="$4"
+  password="$5"
 
   result=$(curl -i -s -k --request POST \
   --header "Content-Type: application/json" \
@@ -66,8 +67,10 @@ kc_create_user() {
     "enabled": "true",
     "username": "'"$username"'",
     "email": "'"$email"'",
+    "emailVerified": "true",
     "firstName": "'"$firstname"'",
-    "lastName": "'"$lastname"'"
+    "lastName": "'"$lastname"'",
+    "credentials": [{"type":"password","value":"'"$password"'","temporary":false}]
   }' "$base_url/admin/realms/$realm/users")
 
   # userid=$(echo "$result" | grep -o "Location: .*" | egrep -o '[a-zA-Z0-9]+(-[a-zA-Z0-9]+)+') #parse userid
@@ -175,10 +178,10 @@ import_accts() {
   while read -r line; do
     IFS=',' read -ra arr <<< "$line"
 
-    kc_create_user "${arr[0]}" "${arr[1]}" "${arr[2]}" "${arr[3]}"
+    kc_create_user "${arr[0]}" "${arr[1]}" "${arr[2]}" "${arr[3]}" "${arr[4]}"
 
-    [ $? -ne 0 ] || kc_set_pwd "$userid" "${arr[4]}"  #skip if kc_create_user failed
-    [ $? -ne 0 ] || kc_set_group_hard "$userid" "${arr[5]}" #skip if kc_create_user failed
+    # [ $? -ne 0 ] || kc_set_pwd "$userid" "${arr[4]}"  #skip if kc_create_user failed
+    # [ $? -ne 0 ] || kc_set_group_hard "$userid" "${arr[5]}" #skip if kc_create_user failed
   done < "$csv_file"
 
   #kc_logout
@@ -208,7 +211,7 @@ case $flag in
   "--test" )
     unit_test
     ;;
-        "--delete" )
+  "--delete" )
     csv_file="$2"
     if [ -z "$csv_file" ]; then
       echo "Error: missing 'csv_file' argument"
@@ -216,9 +219,9 @@ case $flag in
     fi
     delete_accts $csv_file
     ;;
-        "--lookup" )
-          kc_login
-                ;;
+  "--lookup" )
+    kc_login
+    ;;
   "--import")
     csv_file="$2"
     if [ -z "$csv_file" ]; then
